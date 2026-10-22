@@ -1,7 +1,7 @@
-// Vercel build step (vercel.json "buildCommand"). Everything is served by the
-// api/ function, except archive files too big for a function response (4.5 MB
-// limit): those are written, already rewritten/recoloured, to public/ at their
-// URL path so Vercel's CDN serves them as static files.
+// Vercel build step (vercel.json "buildCommand"). Writes every archive file,
+// already rewritten/recoloured, to public/__a/ for the api/ function to fetch,
+// and the ones too big for a function response (4.5 MB limit) also to public/
+// at their URL path so Vercel's CDN serves them directly.
 const fs = require('fs');
 const path = require('path');
 const { manifest, load } = require('./server.js');
@@ -10,7 +10,18 @@ const OUT = path.join(__dirname, 'public');
 const LIMIT = 4 * 1024 * 1024;
 
 fs.rmSync(OUT, { recursive: true, force: true });
-fs.mkdirSync(OUT, { recursive: true });
+fs.mkdirSync(path.join(OUT, '__a'), { recursive: true });
+
+// Every archive file, as served (rewritten/recoloured), for the function to read
+// back from the CDN (server.js fetchBody): the archive stays out of the function.
+const written = new Set();
+for (const entry of Object.values(manifest)) {
+  if (written.has(entry.file)) continue;
+  written.add(entry.file);
+  fs.writeFileSync(path.join(OUT, '__a', entry.file), load(entry));
+}
+console.log(`public/__a: ${written.size} archive files`);
+
 let n = 0;
 for (const [key, entry] of Object.entries(manifest)) {
   if (key.startsWith('POST ') || !key.startsWith('www.artisan.co/')) continue;

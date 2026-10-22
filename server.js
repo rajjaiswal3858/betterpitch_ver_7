@@ -123,8 +123,22 @@ function load(entry) {
 // deployment, which clears the cache); locally always revalidate.
 const CACHE = process.env.VERCEL ? 'public, max-age=0, s-maxage=31536000' : 'no-cache';
 
-function send(req, res, entry) {
-  let body = load(entry);
+// On Vercel the archive is not bundled into the function (at ~190 MB the function
+// failed to start): build-vercel.js writes every file, already rewritten and
+// recoloured, to public/__a/<file>, and the function reads it back from the
+// deployment's own CDN. Locally the archive is read straight from disk.
+const STATIC = !!process.env.VERCEL;
+async function fetchBody(req, entry) {
+  if (!STATIC) return load(entry);
+  const origin = process.env.BP_STATIC_ORIGIN || 'https://' + (req.headers['x-forwarded-host'] || req.headers.host);
+  const r = await fetch(origin + '/__a/' + entry.file);
+  if (!r.ok) throw new Error('static copy of ' + entry.file + ' answered ' + r.status);
+  const buf = Buffer.from(await r.arrayBuffer());
+  return TEXT_RE.test(entry.type) ? buf.toString('utf8') : buf;
+}
+
+async function send(req, res, entry) {
+  let body = await fetchBody(req, entry);
   const headers = { 'content-type': entry.type || 'application/octet-stream', 'cache-control': CACHE };
   if (/text\/html/.test(entry.type)) {
     headers['content-security-policy'] = CSP;
@@ -149,6 +163,14 @@ function send(req, res, entry) {
 }
 
 function handler(req, res) {
+  serve(req, res).catch(e => {
+    console.error(e);
+    if (!res.headersSent) res.writeHead(502, { 'content-type': 'text/plain' });
+    res.end('BetterPitch server error: ' + e.message);
+  });
+}
+
+async function serve(req, res) {
   const u = new URL(req.url, 'http://localhost');
   // Analytics endpoints (PostHog proxy) - answer with an empty success so nothing errors.
   const BP = { '/__bp/content.js': 'application/javascript', '/__bp/hero.js': 'application/javascript', '/__bp/hero.css': 'text/css', '/__bp/theme.css': 'text/css', '/__bp/theme.js': 'application/javascript',
@@ -166,7 +188,7 @@ function handler(req, res) {
     // panel renders as it does live. Anything else - sending a message, starting
     // a call - needs Artisan's live AI backend, which only accepts artisan.co.
     const k = 'POST ' + u.pathname.replace(/^\/__ext\/+/, '');
-    if (manifest[k]) return send(req, res, manifest[k]);
+    if (manifest[k]) return await send(req, res, manifest[k]);
     if (k.includes(CHAT_API)) {
       res.writeHead(503, { 'content-type': 'application/json' });
       return res.end(JSON.stringify({ success: false, error: { code: 'OFFLINE_REPLICA', message: 'Chat is not available in the local replica.' } }));
@@ -183,7 +205,7 @@ function handler(req, res) {
     res.writeHead(404, { 'content-type': 'text/plain' });
     return res.end('Not in archive: ' + u.pathname + u.search + '\nRun: node capture.js ' + u.pathname);
   }
-  send(req, res, manifest[key]);
+  await send(req, res, manifest[key]);
 }
 
 module.exports = { handler, manifest, load };

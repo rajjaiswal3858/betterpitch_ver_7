@@ -3,7 +3,8 @@
   "outputDirectory": "public",
   "functions": {
     "api/index.js": {
-      "includeFiles": "{archive/**,betterpitch/**}",
+      "includeFiles": "{archive/manifest.json,betterpitch/*.js,betterpitch/*.css,betterpitch/vendor/**}",
+      "excludeFiles": "{archive/files/**,betterpitch/recolored/**,public/**,screenshots/**,comparisons/**,node_modules/puppeteer-core/**}",
       "memory": 1024,
       "maxDuration": 30
     }
