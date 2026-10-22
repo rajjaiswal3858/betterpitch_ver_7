@@ -1,4 +1,4 @@
-﻿// Motion layer for the BetterPitch theme (colours live in theme.css), built on
+// Motion layer for the BetterPitch theme (colours live in theme.css), built on
 // GSAP and Motion (Framer Motion's DOM engine), both vendored in ./vendor and
 // loaded from here once the page has loaded. Injected into every HTML page.
 //
