@@ -42,6 +42,9 @@ limit into `public/` so they are served as static files.
 
 - `capture.js` – records the live site into `archive/` (headless Chrome)
 - `server.js` – replays `archive/` on localhost
+- `betterpitch/` – BetterPitch layer injected into every page: copy (`content.js`),
+  home hero (`hero.*`), colour theme and motion (`theme.css`, `theme.js`, which loads
+  GSAP and Motion from `betterpitch/vendor/`; honours reduced-motion)
 - `verify.js` – checks the local copy page by page
 - `pages.txt` – list of pages to record
 - `archive/` – recorded files + `manifest.json` (URL -> file)

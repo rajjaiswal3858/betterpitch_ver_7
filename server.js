@@ -133,6 +133,9 @@ function send(req, res, entry) {
     // The home page's first section is added the same way (betterpitch/hero.js).
     // The colour/motion theme is a stylesheet plus a small script (betterpitch/theme.*),
     // linked last so it wins over the recorded CSS.
+    // theme.js loads GSAP and Motion (betterpitch/vendor) itself after the load event:
+    // extra deferred scripts here shift Next's start-up enough that its lazyOnload
+    // chat-widget loader can miss its turn.
     body = body.replace('</head>', '<link rel="stylesheet" href="/__bp/theme.css"><script src="/__bp/content.js"></script><script src="/__bp/hero.js"></script><script src="/__bp/theme.js"></script></head>');
   }
   // gzip text: smaller pages, and keeps big JSON/SVG under Vercel's 4.5 MB response limit
@@ -148,10 +151,11 @@ function send(req, res, entry) {
 function handler(req, res) {
   const u = new URL(req.url, 'http://localhost');
   // Analytics endpoints (PostHog proxy) - answer with an empty success so nothing errors.
-  const BP = { '/__bp/content.js': 'application/javascript', '/__bp/hero.js': 'application/javascript', '/__bp/hero.css': 'text/css', '/__bp/theme.css': 'text/css', '/__bp/theme.js': 'application/javascript' };
+  const BP = { '/__bp/content.js': 'application/javascript', '/__bp/hero.js': 'application/javascript', '/__bp/hero.css': 'text/css', '/__bp/theme.css': 'text/css', '/__bp/theme.js': 'application/javascript',
+    '/__bp/vendor/gsap.min.js': 'application/javascript', '/__bp/vendor/motion.js': 'application/javascript' };
   if (BP[u.pathname]) {
     res.writeHead(200, { 'content-type': BP[u.pathname], 'cache-control': CACHE });
-    return res.end(fs.readFileSync(path.join(__dirname, 'betterpitch', path.basename(u.pathname))));
+    return res.end(fs.readFileSync(path.join(__dirname, 'betterpitch', u.pathname.slice('/__bp/'.length))));
   }
   if (u.pathname.startsWith('/ingest')) {
     res.writeHead(200, { 'content-type': 'application/json' });

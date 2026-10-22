@@ -1,4 +1,4 @@
-// Purple -> BetterPitch teal/ocean hue mapping, shared by server.js (hex colours
+// Purple -> BetterPitch electric blue / lavender hue mapping, shared by server.js (hex colours
 // in CSS/SVG/HTML/JS) and recolor-images.js (pixels). Only purple-to-magenta hues
 // move; skin tones, blues, greens and oranges are left alone, so photos of people
 // and partner logos keep their colours.
@@ -22,9 +22,9 @@ function shift(r, g, b) {
   h = (h * 60 + 360) % 360;
   const w = purpleWeight(h, s);
   if (w <= 0) return null;
-  // dark purples become deep ocean blue, light ones (lavender) a soft teal
+  // dark purples become electric blue, light ones settle on lavender
   const dark = Math.max(0, Math.min(1, (0.5 - l) / 0.3));
-  const target = 186 + 18 * dark;
+  const target = 258 - 30 * dark;
   const nh = h + (target - h) * w;
   const ns = s * (1 - 0.2 * dark * w);
   const c = (1 - Math.abs(2 * l - 1)) * ns, x = c * (1 - Math.abs((nh / 60) % 2 - 1)), m = l - c / 2;
